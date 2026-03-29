@@ -1,0 +1,26 @@
+:root {
+  --bg: #f4efe6;
+  --panel: #fffaf3;
+  --text: #1f1b16;
+  --accent: #e36a2e;
+  --accent-soft: #ffd8b8;
+  --line: #d9c5ae;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  font-family: "Noto Sans JP", "Hiragino Kaku Gothic ProN", sans-serif;
+  color: var(--text);
+  background:
+    radial-gradient(circle at 20% 10%, #ffe8cf 0%, transparent 45%),
+    radial-gradient(circle at 80% 90%, #ffd5b0 0%, transparent 35%),
+    var(--bg);
+}
+
+#app {
+  min-height: 100vh;
+}

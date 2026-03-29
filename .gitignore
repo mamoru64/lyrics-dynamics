@@ -1,0 +1,9 @@
+node_modules
+dist
+.DS_Store
+.env
+*.log
+apps/frontend/dist
+apps/backend/dist
+apps/backend/data/*.db
+apps/frontend/tsconfig.tsbuildinfo
