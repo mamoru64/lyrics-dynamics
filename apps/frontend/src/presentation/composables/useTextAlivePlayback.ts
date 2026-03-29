@@ -1,12 +1,15 @@
 import { onBeforeUnmount, ref } from "vue";
+import { GetTextAliveToken } from "../../application/usecases/GetTextAliveToken";
+import { EnvTextAliveTokenRepository } from "../../infrastructure/config/EnvTextAliveTokenRepository";
 import { createTextAlivePlayer } from "../../infrastructure/textalive/player";
-import { fetchTextAliveToken } from "../../infrastructure/api/TextAliveApi";
 
 type TimedChar = {
     text: string;
     startTime: number;
     endTime: number;
 };
+
+const tokenUsecase = new GetTextAliveToken(new EnvTextAliveTokenRepository());
 
 export const useTextAlivePlayback = () => {
     const player = ref<ReturnType<typeof createTextAlivePlayer> | null>(null);
@@ -150,7 +153,7 @@ export const useTextAlivePlayback = () => {
 
     const ensurePlayer = async () => {
         if (player.value) return player.value;
-        const token = await fetchTextAliveToken();
+        const token = await tokenUsecase.execute();
         player.value = createTextAlivePlayer(token, mediaMountElement.value ?? undefined);
         bindPlayerListeners(player.value);
         return player.value;
