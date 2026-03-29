@@ -1,18 +1,17 @@
 import { onBeforeUnmount, ref } from "vue";
 import { GetTextAliveToken } from "../../application/usecases/GetTextAliveToken";
+import type { TextAlivePlaybackRepository, TimedChar } from "../../domain/repositories/TextAlivePlaybackRepository";
 import { EnvTextAliveTokenRepository } from "../../infrastructure/config/EnvTextAliveTokenRepository";
-import { createTextAlivePlayer } from "../../infrastructure/textalive/player";
+import { TextAlivePlaybackApiRepository } from "../../infrastructure/textalive/TextAlivePlaybackApiRepository";
 
-type TimedChar = {
-    text: string;
-    startTime: number;
-    endTime: number;
-};
+const DISPLAY_LEAD_MS = 60;
 
 const tokenUsecase = new GetTextAliveToken(new EnvTextAliveTokenRepository());
 
 export const useTextAlivePlayback = () => {
-    const player = ref<ReturnType<typeof createTextAlivePlayer> | null>(null);
+    const playbackRepository: TextAlivePlaybackRepository = new TextAlivePlaybackApiRepository();
+    const repositoryReady = ref(false);
+    const listenersBound = ref(false);
     const mediaMountElement = ref<HTMLElement | null>(null);
 
     const textAliveLoading = ref(false);
@@ -22,6 +21,9 @@ export const useTextAlivePlayback = () => {
     const isPlaying = ref(false);
     const playheadPosition = ref(0);
     const firstCharStartTime = ref(-1);
+    const volume = ref(100);
+    const isMuted = ref(false);
+    let previousVolumeBeforeMute = 100;
 
     let animationFrameId: number | null = null;
     let lastCharStartTime = -1;
@@ -36,27 +38,15 @@ export const useTextAlivePlayback = () => {
         playheadPosition.value = position;
     };
 
-    const rebuildTimedChars = (textAlivePlayer: ReturnType<typeof createTextAlivePlayer>) => {
-        const list: TimedChar[] = [];
-        let charNode = textAlivePlayer.video?.firstChar ?? null;
-
-        while (charNode) {
-            list.push({
-                text: charNode.text,
-                startTime: charNode.startTime,
-                endTime: charNode.endTime,
-            });
-            charNode = charNode.next;
-        }
-
+    const applyTimedChars = (list: TimedChar[]) => {
         timedChars.value = list;
         timedCharIndex = 0;
         firstCharStartTime.value = list[0]?.startTime ?? -1;
     };
 
-    const updateLyricIfAvailable = (textAlivePlayer: ReturnType<typeof createTextAlivePlayer>, position: number): void => {
-        if (!textAlivePlayer.video) return;
-        playheadPosition.value = position;
+    const updateLyricIfAvailable = (position: number): void => {
+        const adjustedPosition = position + DISPLAY_LEAD_MS;
+        playheadPosition.value = adjustedPosition;
 
         const list = timedChars.value;
         if (list.length === 0) return;
@@ -65,17 +55,17 @@ export const useTextAlivePlayback = () => {
             timedCharIndex = list.length - 1;
         }
 
-        while (timedCharIndex + 1 < list.length && list[timedCharIndex + 1].startTime <= position) {
+        while (timedCharIndex + 1 < list.length && list[timedCharIndex + 1].startTime <= adjustedPosition) {
             timedCharIndex += 1;
         }
 
-        while (timedCharIndex > 0 && list[timedCharIndex].startTime > position) {
+        while (timedCharIndex > 0 && list[timedCharIndex].startTime > adjustedPosition) {
             timedCharIndex -= 1;
         }
 
         const item = list[timedCharIndex];
         if (!item) return;
-        if (position < item.startTime || position > item.endTime) return;
+        if (adjustedPosition < item.startTime) return;
 
         if (lastCharStartTime !== item.startTime || currentLyric.value !== item.text) {
             currentLyric.value = item.text;
@@ -83,9 +73,13 @@ export const useTextAlivePlayback = () => {
         }
     };
 
-    const getSynchronizedPosition = (textAlivePlayer: ReturnType<typeof createTextAlivePlayer>): number => {
+    const getCurrentKnownPosition = (): number => {
+        return Math.max(playbackRepository.getVideoPosition(), playbackRepository.getMediaPosition(), lastEventPosition);
+    };
+
+    const getSynchronizedPosition = (): number => {
         if (!isPlaying.value) {
-            return Math.max(textAlivePlayer.videoPosition, textAlivePlayer.mediaPosition, lastEventPosition);
+            return getCurrentKnownPosition();
         }
 
         if (lastEventTimestamp > 0) {
@@ -93,7 +87,7 @@ export const useTextAlivePlayback = () => {
             return lastEventPosition + elapsed;
         }
 
-        return Math.max(textAlivePlayer.videoPosition, textAlivePlayer.mediaPosition, lastEventPosition);
+        return getCurrentKnownPosition();
     };
 
     const stopPlaybackTicker = () => {
@@ -103,42 +97,43 @@ export const useTextAlivePlayback = () => {
         }
     };
 
-    const startPlaybackTicker = (textAlivePlayer: ReturnType<typeof createTextAlivePlayer>) => {
+    const startPlaybackTicker = () => {
         stopPlaybackTicker();
 
         const tick = () => {
             if (!isPlaying.value) return;
-            const position = getSynchronizedPosition(textAlivePlayer);
-            updateLyricIfAvailable(textAlivePlayer, position);
+            const position = getSynchronizedPosition();
+            updateLyricIfAvailable(position);
             animationFrameId = requestAnimationFrame(tick);
         };
 
         animationFrameId = requestAnimationFrame(tick);
     };
 
-    const bindPlayerListeners = (textAlivePlayer: ReturnType<typeof createTextAlivePlayer>) => {
-        textAlivePlayer.addListener({
+    const bindRepositoryListeners = () => {
+        if (listenersBound.value) return;
+
+        playbackRepository.addListener({
             onVideoReady: () => {
                 currentLyric.value = "";
                 lastCharStartTime = -1;
                 playheadPosition.value = 0;
                 lastEventPosition = 0;
                 lastEventTimestamp = 0;
-                rebuildTimedChars(textAlivePlayer);
             },
             onTimeUpdate: (position: number) => {
                 markEventPosition(position);
-                updateLyricIfAvailable(textAlivePlayer, position);
+                updateLyricIfAvailable(position);
             },
             onThrottledTimeUpdate: (position: number) => {
                 markEventPosition(position);
-                updateLyricIfAvailable(textAlivePlayer, position);
+                updateLyricIfAvailable(position);
             },
             onPlay: () => {
                 isPlaying.value = true;
-                markEventPosition(Math.max(textAlivePlayer.videoPosition, textAlivePlayer.mediaPosition, playheadPosition.value));
-                startPlaybackTicker(textAlivePlayer);
-                updateLyricIfAvailable(textAlivePlayer, getSynchronizedPosition(textAlivePlayer));
+                markEventPosition(Math.max(getCurrentKnownPosition(), playheadPosition.value));
+                startPlaybackTicker();
+                updateLyricIfAvailable(getSynchronizedPosition());
             },
             onPause: () => {
                 isPlaying.value = false;
@@ -148,18 +143,25 @@ export const useTextAlivePlayback = () => {
                 isPlaying.value = false;
                 stopPlaybackTicker();
             },
+            onVolumeUpdate: (nextVolume: number) => {
+                volume.value = nextVolume;
+                isMuted.value = nextVolume <= 0;
+            },
         });
+
+        listenersBound.value = true;
     };
 
-    const ensurePlayer = async () => {
-        if (player.value) return player.value;
+    const ensureRepository = async () => {
+        if (repositoryReady.value) return;
         const token = await tokenUsecase.execute();
-        player.value = createTextAlivePlayer(token, mediaMountElement.value ?? undefined);
-        bindPlayerListeners(player.value);
-        return player.value;
+        playbackRepository.initialize({ token, mediaElement: mediaMountElement.value ?? undefined });
+        bindRepositoryListeners();
+        playbackRepository.setVolume(volume.value);
+        repositoryReady.value = true;
     };
 
-    const loadSong = async (songUrl: string) => {
+    const loadSong = async (songUrl: string, options?: { lyricsUrl?: string; songTitle?: string }) => {
         stopPlaybackTicker();
         isPlaying.value = false;
         textAliveLoading.value = true;
@@ -167,15 +169,23 @@ export const useTextAlivePlayback = () => {
         textAliveError.value = "";
 
         try {
-            const textAlivePlayer = await ensurePlayer();
-            await textAlivePlayer.createFromSongUrl(songUrl);
+            await ensureRepository();
+            const list = await playbackRepository.loadSong(songUrl, {
+                lyricsUrl: options?.lyricsUrl,
+            });
+            applyTimedChars(list);
+
             currentLyric.value = "";
             lastCharStartTime = -1;
             playheadPosition.value = 0;
             lastEventPosition = 0;
             lastEventTimestamp = 0;
-            rebuildTimedChars(textAlivePlayer);
             textAliveReady.value = true;
+
+            if (timedChars.value.length === 0) {
+                const title = options?.songTitle ? `「${options.songTitle}」` : "この楽曲";
+                textAliveError.value = `${title} は現在 TextAlive 側で歌詞タイミング情報が取得できないため、歌詞同期表示は行えません。`;
+            }
         } catch (error) {
             textAliveError.value = error instanceof Error ? error.message : "TextAlive Player の初期化に失敗しました";
         } finally {
@@ -184,22 +194,52 @@ export const useTextAlivePlayback = () => {
     };
 
     const play = () => {
-        if (!player.value) return;
+        if (!repositoryReady.value) return;
         isPlaying.value = true;
-        markEventPosition(Math.max(player.value.videoPosition, player.value.mediaPosition, playheadPosition.value));
-        startPlaybackTicker(player.value);
-        updateLyricIfAvailable(player.value, getSynchronizedPosition(player.value));
-        player.value.requestPlay();
+        markEventPosition(Math.max(getCurrentKnownPosition(), playheadPosition.value));
+        startPlaybackTicker();
+        updateLyricIfAvailable(getSynchronizedPosition());
+        playbackRepository.requestPlay();
     };
 
     const pause = () => {
         isPlaying.value = false;
         stopPlaybackTicker();
-        player.value?.requestPause();
+        if (!repositoryReady.value) return;
+        playbackRepository.requestPause();
     };
 
     const setMediaMount = (element: HTMLElement) => {
         mediaMountElement.value = element;
+        playbackRepository.setMediaElement(element);
+    };
+
+    const setVolume = (nextVolume: number) => {
+        const clamped = Math.min(100, Math.max(0, Math.round(nextVolume)));
+        volume.value = clamped;
+        isMuted.value = clamped <= 0;
+        if (repositoryReady.value) {
+            playbackRepository.setVolume(clamped);
+        }
+    };
+
+    const volumeUp = () => {
+        setVolume(volume.value + 10);
+    };
+
+    const volumeDown = () => {
+        setVolume(volume.value - 10);
+    };
+
+    const toggleMute = () => {
+        if (isMuted.value || volume.value <= 0) {
+            const restore = previousVolumeBeforeMute > 0 ? previousVolumeBeforeMute : 60;
+            setVolume(restore);
+            return;
+        }
+
+        previousVolumeBeforeMute = volume.value;
+        setVolume(0);
     };
 
     onBeforeUnmount(() => {
@@ -214,9 +254,15 @@ export const useTextAlivePlayback = () => {
         isPlaying,
         playheadPosition,
         firstCharStartTime,
+        volume,
+        isMuted,
         setMediaMount,
         loadSong,
         play,
         pause,
+        setVolume,
+        volumeUp,
+        volumeDown,
+        toggleMute,
     };
 };

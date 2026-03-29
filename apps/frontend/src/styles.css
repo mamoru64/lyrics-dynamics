@@ -1,10 +1,10 @@
 :root {
-  --bg: #f4efe6;
-  --panel: #fffaf3;
-  --text: #1f1b16;
-  --accent: #e36a2e;
-  --accent-soft: #ffd8b8;
-  --line: #d9c5ae;
+  --bg: #e8f1ff;
+  --panel: #f7fbff;
+  --text: #11233f;
+  --accent: #0f6ad9;
+  --accent-soft: #67d1ff;
+  --line: #9fc2ea;
 }
 
 * {
@@ -16,8 +16,8 @@ body {
   font-family: "Noto Sans JP", "Hiragino Kaku Gothic ProN", sans-serif;
   color: var(--text);
   background:
-    radial-gradient(circle at 20% 10%, #ffe8cf 0%, transparent 45%),
-    radial-gradient(circle at 80% 90%, #ffd5b0 0%, transparent 35%),
+    radial-gradient(circle at 20% 10%, rgba(112, 212, 255, 0.55) 0%, transparent 46%),
+    radial-gradient(circle at 80% 90%, rgba(15, 106, 217, 0.22) 0%, transparent 38%),
     var(--bg);
 }
 

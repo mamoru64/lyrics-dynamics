@@ -1,11 +1,24 @@
 <script setup lang="ts">
 import { computed, ref } from "vue";
+import PlaybackControlBar from "../molecules/PlaybackControlBar.vue";
 
 const props = defineProps<{
   lyric: string;
   playing: boolean;
   playheadPosition: number;
   firstCharStartTime: number;
+  volume: number;
+  isMuted: boolean;
+  controlsEnabled: boolean;
+}>();
+
+const emit = defineEmits<{
+  playSong: [];
+  pauseSong: [];
+  volumeUp: [];
+  volumeDown: [];
+  volumeChange: [nextVolume: number];
+  toggleMute: [];
 }>();
 
 const introCountdown = computed(() => {
@@ -105,14 +118,19 @@ const shapeStyle = computed(() => {
     <div class="shape-base" :style="shapeStyle"></div>
     <div class="shape-accent" :style="shapeStyle"></div>
     <p class="lyric" :style="lyricStyle">{{ displayLyric }}</p>
-
-    <footer class="hud">
-      <p>操作: マウス移動 + WASD / 矢印キー</p>
-      <p>表示: 歌詞を1文字ずつタイミング同期</p>
-      <p>{{ playing ? "再生中" : "停止中" }} / Distortion: {{ distortion.toFixed(2) }}</p>
-      <p>Position: {{ playheadPosition }}ms / FirstChar: {{ firstCharStartTime }}ms</p>
-      <p v-if="activeKeys.length > 0">Keys: {{ activeKeys.join(" + ") }}</p>
-    </footer>
+    <PlaybackControlBar
+      :playing="playing"
+      :volume="volume"
+      :is-muted="isMuted"
+      :controls-enabled="controlsEnabled"
+      :active-keys="activeKeys"
+      @play-song="emit('playSong')"
+      @pause-song="emit('pauseSong')"
+      @volume-up="emit('volumeUp')"
+      @volume-down="emit('volumeDown')"
+      @volume-change="(value) => emit('volumeChange', value)"
+      @toggle-mute="emit('toggleMute')"
+    />
   </section>
 </template>
 
@@ -122,8 +140,8 @@ const shapeStyle = computed(() => {
   display: grid;
   place-items: center;
   background:
-    radial-gradient(circle at 18% 22%, rgba(255, 230, 190, 0.7), transparent 48%),
-    radial-gradient(circle at 82% 84%, rgba(227, 106, 46, 0.24), transparent 42%),
+    radial-gradient(circle at 18% 22%, rgba(95, 185, 255, 0.30), transparent 48%),
+    radial-gradient(circle at 82% 84%, rgba(15, 106, 217, 0.22), transparent 42%),
     var(--panel);
   border: 1px solid var(--line);
   border-radius: 24px;
@@ -143,7 +161,7 @@ const shapeStyle = computed(() => {
   width: min(45vw, 280px);
   aspect-ratio: 1;
   border-radius: 42% 58% 54% 46% / 52% 32% 68% 48%;
-  background: linear-gradient(145deg, #f2b24a, #e36a2e);
+  background: linear-gradient(145deg, #5bc8ff, #0f6ad9);
   mix-blend-mode: multiply;
 }
 
@@ -151,7 +169,7 @@ const shapeStyle = computed(() => {
   width: min(40vw, 220px);
   aspect-ratio: 1;
   border-radius: 26% 74% 69% 31% / 35% 25% 75% 65%;
-  background: linear-gradient(125deg, rgba(255, 227, 194, 0.95), rgba(248, 173, 108, 0.85));
+  background: linear-gradient(125deg, rgba(216, 244, 255, 0.95), rgba(111, 205, 255, 0.85));
   mix-blend-mode: screen;
 }
 
@@ -163,30 +181,9 @@ const shapeStyle = computed(() => {
   text-align: center;
   font-size: clamp(1.2rem, 3.6vw, 2.4rem);
   font-weight: 800;
-  color: #2e2318;
-  text-shadow: 0 2px 0 rgba(255, 255, 255, 0.85);
+  color: #11233f;
+  text-shadow: 0 2px 0 rgba(255, 255, 255, 0.9);
   transition: transform 80ms linear, letter-spacing 80ms linear;
   user-select: none;
-}
-
-.hud {
-  position: absolute;
-  left: 1rem;
-  right: 1rem;
-  bottom: 0.9rem;
-  display: grid;
-  gap: 0.2rem;
-  padding: 0.8rem 0.95rem;
-  border-radius: 12px;
-  background: rgba(255, 250, 243, 0.82);
-  border: 1px solid rgba(217, 197, 174, 0.85);
-  backdrop-filter: blur(6px);
-  z-index: 3;
-}
-
-.hud p {
-  margin: 0;
-  font-size: 0.85rem;
-  color: #4f3d2c;
 }
 </style>

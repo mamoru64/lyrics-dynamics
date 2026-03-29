@@ -16,10 +16,16 @@ const {
   isPlaying,
   playheadPosition,
   firstCharStartTime,
+  volume,
+  isMuted,
   setMediaMount,
   loadSong,
   play,
   pause,
+  setVolume,
+  volumeUp,
+  volumeDown,
+  toggleMute,
 } = useTextAlivePlayback();
 
 const handleSelectSong = (songId: string) => {
@@ -28,7 +34,10 @@ const handleSelectSong = (songId: string) => {
 
 const loadSelectedSong = async () => {
   if (!selectedSong.value) return;
-  await loadSong(selectedSong.value.textaliveSongUrl);
+  await loadSong(selectedSong.value.textaliveSongUrl, {
+    lyricsUrl: selectedSong.value.textaliveLyricsUrl,
+    songTitle: selectedSong.value.title,
+  });
 };
 
 const handlePlaySong = () => {
@@ -37,6 +46,22 @@ const handlePlaySong = () => {
 
 const handlePauseSong = () => {
   pause();
+};
+
+const handleVolumeUp = () => {
+  volumeUp();
+};
+
+const handleVolumeDown = () => {
+  volumeDown();
+};
+
+const handleToggleMute = () => {
+  toggleMute();
+};
+
+const handleVolumeChange = (nextVolume: number) => {
+  setVolume(nextVolume);
 };
 
 const handleMediaMount = (element: HTMLElement) => {
@@ -60,12 +85,18 @@ watch(selectedSongId, async () => {
     :is-playing="isPlaying"
     :playhead-position="Math.floor(playheadPosition)"
     :first-char-start-time="firstCharStartTime"
+    :volume="volume"
+    :is-muted="isMuted"
     :text-alive-loading="textAliveLoading"
     :text-alive-ready="textAliveReady"
     :text-alive-error="textAliveError"
     @select-song="handleSelectSong"
     @play-song="handlePlaySong"
     @pause-song="handlePauseSong"
+    @volume-up="handleVolumeUp"
+    @volume-down="handleVolumeDown"
+    @volume-change="handleVolumeChange"
+    @toggle-mute="handleToggleMute"
     @media-mount="handleMediaMount"
   />
 </template>
