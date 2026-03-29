@@ -1,0 +1,62 @@
+[
+    {
+        "id": "kotaete",
+        "title": "こたえて",
+        "artistName": "imie",
+        "musicUrl": "https://piapro.jp/t/6W2N",
+        "lyricsUrl": "https://piapro.jp/t/9o24",
+        "textaliveSongUrl": "https://piapro.jp/t/6W2N/20251215164617",
+        "textaliveLyricsUrl": "https://piapro.jp/t/9o24",
+        "sourceUrl": "https://magicalmirai.com/2026/procon"
+    },
+    {
+        "id": "after-the-curtain",
+        "title": "アフター・ザ・カーテン",
+        "artistName": "Rulmry",
+        "musicUrl": "https://piapro.jp/t/zoqO",
+        "lyricsUrl": "https://piapro.jp/t/EVO2",
+        "textaliveSongUrl": "https://piapro.jp/t/zoqO/20251214200738",
+        "textaliveLyricsUrl": "https://piapro.jp/t/EVO2",
+        "sourceUrl": "https://magicalmirai.com/2026/procon"
+    },
+    {
+        "id": "shutter-chance",
+        "title": "シャッターチャンス",
+        "artistName": "夜未アガリ",
+        "musicUrl": "https://piapro.jp/t/PNpQ",
+        "lyricsUrl": "https://piapro.jp/t/wyWv",
+        "textaliveSongUrl": "https://piapro.jp/t/PNpQ/20251209170719",
+        "textaliveLyricsUrl": "https://piapro.jp/t/wyWv",
+        "sourceUrl": "https://magicalmirai.com/2026/procon"
+    },
+    {
+        "id": "sekai-saigo-no-ongakutai",
+        "title": "世界最後の音楽隊",
+        "artistName": "夏山よつぎ×ど〜ぱみん",
+        "musicUrl": "https://piapro.jp/t/B3yJ",
+        "lyricsUrl": "https://piapro.jp/t/9U-6",
+        "textaliveSongUrl": "https://piapro.jp/t/B3yJ/20251215061727",
+        "textaliveLyricsUrl": "https://piapro.jp/t/9U-6",
+        "sourceUrl": "https://magicalmirai.com/2026/procon"
+    },
+    {
+        "id": "toritsukurology",
+        "title": "トリツクロジー",
+        "artistName": "鶴三",
+        "musicUrl": "https://piapro.jp/t/QBdL",
+        "lyricsUrl": "https://piapro.jp/t/Nixq",
+        "textaliveSongUrl": "https://piapro.jp/t/QBdL/20251215094303",
+        "textaliveLyricsUrl": "https://piapro.jp/t/Nixq",
+        "sourceUrl": "https://magicalmirai.com/2026/procon"
+    },
+    {
+        "id": "takeover",
+        "title": "TAKEOVER",
+        "artistName": "Twinfield",
+        "musicUrl": "https://piapro.jp/t/E2i3",
+        "lyricsUrl": "https://piapro.jp/t/zxWP",
+        "textaliveSongUrl": "https://piapro.jp/t/E2i3/20251215092113",
+        "textaliveLyricsUrl": "https://piapro.jp/t/zxWP",
+        "sourceUrl": "https://magicalmirai.com/2026/procon"
+    }
+]

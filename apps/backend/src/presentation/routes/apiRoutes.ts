@@ -20,6 +20,15 @@ export const createApiRoutes = ({ usecase, repository, textAlive }: Dependencies
     res.json(textAlive.getTokenStatus());
   });
 
+  router.get("/textalive/token", (_req, res) => {
+    const token = textAlive.getClientToken();
+    if (!token) {
+      res.status(503).json({ message: "TEXTALIVE_APP_TOKEN が設定されていません" });
+      return;
+    }
+    res.json({ token });
+  });
+
   router.post("/expressions/realtime", async (req, res, next) => {
     try {
       const { lyric, bpm, timestamp } = req.body as {
